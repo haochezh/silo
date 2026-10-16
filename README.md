@@ -141,6 +141,8 @@ sequenceDiagram
 | `programs/silo/` | Anchor program: `open_silo`, `authorize`, `execute_sol` |
 | `src/lib/wots.ts` | Key derivation, signing, salt grinding, verification |
 | `src/lib/chain.ts` | Addresses and transaction steps |
+| `src/lib/api.ts` | API client and live updates |
+| `server/` | API server: SQLite storage, signature checks, live stream |
 | `src/pages/` | Coins, Lock fees, Your silo, Verify, Docs |
 | `src/components/` | Nav, footer, logo |
 | `docs/` | README assets |
@@ -152,11 +154,34 @@ signature made in the tab verifies on chain byte for byte.
 
 ```bash
 npm install
-npm run dev
+npm run server   # API on :8787 (SQLite, seeded with demo data)
+npm run dev      # site on :5173, proxies /api to :8787
 ```
 
-Set `VITE_RPC_URL` in `.env` to use your own RPC. Wallets that follow the Wallet Standard (Phantom,
-Solflare, Backpack) are detected automatically.
+Requires Node 22.13+ (the API uses the built-in `node:sqlite`, no other dependencies).
+
+## Deploy on Railway
+
+One service serves both the site and the API.
+
+1. Create a project from this repo. Railway reads `railway.json`: it builds with `npm run build` and starts with `npm start`.
+2. Add a **volume** mounted at `/data`, and set `DATABASE_PATH=/data/silo.db` so coins and withdrawals survive redeploys.
+3. Optional variables: `SEED_DEMO=0` to start empty, `CORS_ORIGIN` if the frontend is hosted elsewhere, `PROGRAM_ID`.
+4. Point `silo.fund` at the service under **Settings → Networking → Custom domain**.
+
+To host the frontend separately (e.g. Netlify), build it with `VITE_API_URL=https://<your-railway-domain>` and set `CORS_ORIGIN` to the site's origin.
+
+### API
+
+| Method | Path | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/coins` | Every coin in a silo, newest first |
+| `GET` | `/api/lookup/:mint` | Market data for any mint, and whether it is already locked |
+| `POST` | `/api/locks` | Record a lock. Requires the creator wallet's signature over the lock message |
+| `GET` | `/api/releases` | Latest withdrawals |
+| `GET` | `/api/releases/:id` | One withdrawal, with its full 840-byte signature |
+| `POST` | `/api/releases` | Submit a withdrawal. The server verifies the WOTS signature and key rotation before accepting it |
+| `GET` | `/api/stream` | Server-sent events: `coin` and `release` |
 
 ## Verify it yourself
 
