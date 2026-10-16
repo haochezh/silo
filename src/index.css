@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-bg: #09090a;
+  --color-panel: #111113;
+  --color-line: #1f1f23;
+  --color-line2: #2a2a2f;
+  --color-ink: #f4f4f5;
+  --color-dim: #a1a1aa;
+  --color-mute: #63636b;
+  --color-acc: #a3e635;
+  --color-warn: #f87171;
+}
+
+html, body { background: var(--color-bg); color: var(--color-ink); }
+body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+::selection { background: #a3e63540; }
+
+.label { font-family: var(--font-mono); font-size: 11px; color: var(--color-mute); letter-spacing: .02em; }
+.mono { font-family: var(--font-mono); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: 9999px; padding: .55rem 1.1rem; font-size: 14px; font-weight: 500; transition: all .15s; }
+.btn-primary { background: var(--color-ink); color: #0a0a0a; }
+.btn-primary:hover { background: #fff; }
+.btn-primary:disabled { background: #3f3f46; color: #71717a; cursor: not-allowed; }
+.btn-ghost { border: 1px solid var(--color-line2); color: var(--color-ink); }
+.btn-ghost:hover { border-color: #3f3f46; background: #ffffff08; }
+.card { background: var(--color-panel); border: 1px solid var(--color-line); border-radius: 14px; }
+.input { width: 100%; background: #0c0c0e; border: 1px solid var(--color-line2); border-radius: 10px; padding: .7rem .85rem; font-size: 14px; outline: none; }
+.input:focus { border-color: #52525b; }
+.pill { border-radius: 9999px; padding: .3rem .8rem; font-size: 13px; color: var(--color-dim); }
+.pill[data-on="true"] { background: var(--color-ink); color: #0a0a0a; }
+.dot { width: 6px; height: 6px; border-radius: 9999px; background: var(--color-acc); display: inline-block; box-shadow: 0 0 10px var(--color-acc); }
+
+/* wallet modal, restyled to match */
+.wallet-adapter-modal-wrapper { background: var(--color-panel) !important; border: 1px solid var(--color-line); border-radius: 16px !important; box-shadow: 0 30px 80px #000c !important; font-family: var(--font-sans) !important; }
+.wallet-adapter-modal-title { font-size: 20px !important; font-weight: 500 !important; letter-spacing: -0.01em; }
+.wallet-adapter-modal-overlay { background: #000000b3 !important; backdrop-filter: blur(4px); }
+.wallet-adapter-modal-list .wallet-adapter-button { font-family: var(--font-sans) !important; font-weight: 500 !important; border-radius: 10px !important; }
+.wallet-adapter-modal-list .wallet-adapter-button:hover { background: #ffffff0d !important; }
+.wallet-adapter-modal-button-close { background: #ffffff0d !important; }
