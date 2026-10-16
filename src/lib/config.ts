@@ -7,8 +7,7 @@ export const BRAND = {
   xUrl: "https://x.com/silodotfund",
   domain: "silo.fund",
   url: "https://silo.fund",
-  // Change to your repo once it's created.
-  github: "https://github.com/silodotfund/silo",
+  github: "https://github.com/haochezh/silo",
 };
 
 // Placeholder until the program is deployed. Nothing in this preview sends a
