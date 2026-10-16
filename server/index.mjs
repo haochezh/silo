@@ -2,7 +2,8 @@
 //
 //   PORT            port to listen on (Railway sets this)
 //   DATABASE_PATH   sqlite file, put it on a Railway volume, e.g. /data/silo.db
-//   CORS_ORIGIN     allowed origin for a separately hosted frontend (default *)
+//   CORS_ORIGIN     comma-separated origins allowed to call the API, e.g.
+//                   "https://silo.fund,https://www.silo.fund" (default *)
 //   SEED_DEMO       "0" to start with an empty database
 //   PROGRAM_ID      silo program id used in signed messages
 
@@ -18,7 +19,7 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = join(ROOT, "..", "dist");
 const PORT = Number(process.env.PORT || 8787);
 const DB_PATH = process.env.DATABASE_PATH || join(ROOT, "..", "data", "silo.db");
-const CORS = process.env.CORS_ORIGIN || "*";
+const CORS = (process.env.CORS_ORIGIN || "*").split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);
 const PROGRAM_ID = process.env.PROGRAM_ID || "S1LoqVau1tPq9xW3mZ7bHn4cRk2eYd8uTf6gJsA5LvN";
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 
@@ -201,7 +202,7 @@ async function api(req, res, url) {
     const b = await body(req);
     const { mint, creator, vault, share, firstKeyHash, message, signature } = b;
     if (![mint, creator, vault].every((x) => typeof x === "string" && B58.test(x))) throw new HttpError(400, "bad address");
-    if (![100, 80, 50].includes(share)) throw new HttpError(400, "share must be 100, 80 or 50");
+    if (!Number.isInteger(share) || share < 1 || share > 100) throw new HttpError(400, "share must be a whole percent from 1 to 100");
     if (typeof firstKeyHash !== "string" || !HEX(64).test(firstKeyHash)) throw new HttpError(400, "bad key hash");
     if (W.vaultAddress(W.unhex(firstKeyHash), PROGRAM_ID) !== vault) throw new HttpError(400, "vault does not match key hash");
     if (typeof message !== "string" || !message.includes(mint) || !message.includes(vault) || !message.includes(firstKeyHash))
@@ -313,7 +314,12 @@ async function serveStatic(req, res, url) {
 http
   .createServer(async (req, res) => {
     const url = new URL(req.url, "http://x");
-    res.setHeader("access-control-allow-origin", CORS);
+    const origin = req.headers.origin;
+    if (CORS.includes("*")) res.setHeader("access-control-allow-origin", "*");
+    else if (origin && CORS.includes(origin)) {
+      res.setHeader("access-control-allow-origin", origin);
+      res.setHeader("vary", "origin");
+    }
     res.setHeader("access-control-allow-headers", "content-type");
     res.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
     if (req.method === "OPTIONS") return res.writeHead(204).end();

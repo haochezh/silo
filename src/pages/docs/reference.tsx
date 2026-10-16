@@ -274,44 +274,94 @@ export function PumpIntegration() {
   return (
     <>
       <P>
-        silo does not wrap or fork pump.fun. It uses pump.fun's public fee sharing instructions to make a silo the
-        recipient of a coin's creator fees.
+        silo does not wrap, fork or replace pump.fun. It uses pump.fun's public fee sharing instructions to make a silo
+        the recipient of a coin's creator fees. Trading, the bonding curve, graduation and PumpSwap all keep working
+        exactly as before; the only thing that changes is where the creator's share of each trade ends up.
+      </P>
+
+      <H2>How pump.fun pays creators</H2>
+      <P>
+        Every trade on a pump.fun coin pays a small creator fee on top of the protocol fee. On the bonding curve, that fee
+        accrues in a creator vault PDA owned by the Pump program, seeded by <C>["creator-vault", creator]</C>. After a coin
+        graduates, trades happen on PumpSwap, which keeps its own coin creator vault. Fees are collected in the pool's
+        quote asset, so SOL-paired coins pay creators in SOL, never in the coin itself.
+      </P>
+      <P>
+        For a coin with a single creator recipient, the creator claims those fees with <C>collect_creator_fee_v2</C>, which
+        sends them to the creator's wallet. That wallet is an ordinary ed25519 key, which is the part silo replaces.
+      </P>
+
+      <H2>Fee sharing</H2>
+      <P>
+        pump.fun's fee sharing lets a creator move a coin's creator vault into a sharing config and split fees between up
+        to ten shareholders, each with a share in basis points. Two properties matter for silo:
+      </P>
+      <UL>
+        <li><strong className="text-ink font-normal">It is configured once.</strong> The split can be set a single time; afterwards the config's admin is revoked and the recipients are fixed for good.</li>
+        <li><strong className="text-ink font-normal">Distribution is permissionless.</strong> Anyone can call the instruction that pays accrued fees out to the shareholders, so recipients never need to sign anything to receive.</li>
+      </UL>
+      <P>
+        Together these give silo what it needs: a permanent route that cannot be redirected, and a way for fees to arrive
+        without any ed25519 signature from the recipient.
       </P>
 
       <H2>Programs</H2>
       <Table
-        head={["Program", "Role"]}
+        head={["Program", "Role in silo"]}
         rows={[
-          ["Pump", "Bonding curve. Holds the creator vault PDA, seeds [\"creator-vault\", creator]."],
-          ["PumpSwap", "AMM for graduated coins. Holds the coin creator vault."],
-          [<>Pump Fees <C>{PUMP_FEES_PROGRAM}</C></>, "Fee sharing configs and shareholders."],
+          ["Pump", "Bonding curve. Holds the creator vault PDA and pays out sharing configs with distribute_creator_fees_v2."],
+          ["PumpSwap", "AMM for graduated coins. Holds the coin creator vault; transfer_creator_fees_to_pump_v2 moves its fees back for distribution."],
+          [<>Pump Fees <C>{PUMP_FEES_PROGRAM}</C></>, "Creates sharing configs and stores shareholders and their basis points."],
+          [<>silo <C>{PROGRAM_ID}</C></>, "Owns the silo PDA that is set as a shareholder, and releases funds only to valid WOTS signatures."],
         ]}
       />
 
       <H2>Instructions used</H2>
       <Table
-        head={["Instruction", "Who calls it", "When"]}
+        head={["Instruction", "Program", "Who calls it", "When"]}
         rows={[
-          [<C>create_fee_sharing_config</C>, "Creator", "Once, during lock"],
-          [<C>update_fee_shares_v2</C>, "Creator", "Once, during lock. Admin revoked afterwards"],
-          [<C>transfer_creator_fees_to_pump_v2</C>, "Anyone", "Graduated coins, before distributing"],
-          [<C>distribute_creator_fees_v2</C>, "Anyone", "Any time fees have accrued"],
+          [<C>create_fee_sharing_config</C>, "Pump Fees", "Creator", "Once, during lock. Migrates the creator vault (and the PumpSwap coin creator, if graduated) to a sharing config PDA."],
+          [<C>update_fee_shares_v2</C>, "Pump Fees", "Creator", "Once, during lock. Sets the silo, and the creator for any remaining share, as shareholders. Sweeps pending fees first. Admin revoked afterwards."],
+          [<C>transfer_creator_fees_to_pump_v2</C>, "PumpSwap", "Anyone", "Graduated coins: moves fees accrued on the AMM into the bonding curve's creator vault."],
+          [<C>distribute_creator_fees_v2</C>, "Pump", "Anyone", "Any time fees have accrued. Pays each shareholder according to its basis points."],
         ]}
       />
+
+      <H2>The lock, step by step</H2>
+      <OL>
+        <li>The browser derives key #0 from your 24 words and computes the silo address from its hash.</li>
+        <li><C>open_silo</C> creates the silo account, committing to that hash.</li>
+        <li><C>create_fee_sharing_config</C> migrates the coin's creator vault to a sharing config.</li>
+        <li><C>update_fee_shares_v2</C> sets the shareholders: the silo gets your chosen share in basis points (100% is 10,000 bps), and the creator wallet gets the rest, if any. pump.fun then revokes the admin.</li>
+        <li><C>distribute_creator_fees_v2</C> sweeps anything already pending into the silo.</li>
+      </OL>
+      <Note>
+        Steps 2 to 4 are signed by the creator wallet in one go. After step 4, the creator wallet has no remaining power
+        over the route; it is just another shareholder if you chose less than 100%.
+      </Note>
 
       <H2>Keeping fees flowing</H2>
       <P>
         Because distribution is permissionless, fees do not need you to come back. silo runs a crank that calls
-        <C> distribute_creator_fees_v2</C> for every locked coin when accrued fees cross a small threshold, and anyone else
-        can do the same. If the crank stops, fees simply wait in pump.fun's vault until the next distribution.
+        <C> distribute_creator_fees_v2</C> for locked coins when accrued fees cross a small threshold, and anyone else can do
+        the same. For graduated coins the crank first calls <C>transfer_creator_fees_to_pump_v2</C>. If the crank ever
+        stops, nothing is lost: fees simply wait in pump.fun's vault until the next distribution.
       </P>
 
       <H2>Eligibility</H2>
       <UL>
-        <li>The coin must still be single-recipient: its creator vault has not been migrated to a sharing config.</li>
+        <li>The coin must still be single-recipient: its creator vault has not already been migrated to a sharing config.</li>
         <li>The signer must be the coin's current creator.</li>
+        <li>The coin can be on the bonding curve or graduated to PumpSwap.</li>
         <li>SOL-paired and other-quote coins are both supported; non-SOL quotes are withdrawn with <C>execute_token</C>.</li>
       </UL>
+
+      <H2>What changes for holders and traders</H2>
+      <P>
+        Nothing about trading changes. Fees are the same, the curve is the same, and graduation works as normal. What
+        holders gain is a public, permanent guarantee about where the creator's share goes, which anyone can confirm on
+        chain by reading the coin's sharing config and seeing the silo PDA as a shareholder.
+      </P>
     </>
   );
 }

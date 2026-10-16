@@ -1,6 +1,7 @@
 import { Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { WalletProvider } from "./wallet";
+import { useReveal } from "./reveal";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
@@ -12,6 +13,7 @@ import Docs from "./pages/Docs";
 
 export default function App() {
   const { pathname } = useLocation();
+  useReveal(pathname);
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);

@@ -4,6 +4,13 @@ import { CHAINS, MAX_VERIFY_STEPS, N, SIG_BYTES, W, digits, encodeWithdrawal, he
 import { sha256 } from "@noble/hashes/sha256";
 import { ago, api, useApi, useLive, type Release } from "../lib/api";
 import { short } from "../lib/chain";
+import VerifyExplainer from "../components/VerifyExplainer";
+
+// Two seeded withdrawals that exist on every deployment (deterministic demo keys).
+const EXAMPLES: [string, string][] = [
+  ["$QUBIT · key #1", "DM8YGyvZcVrRvUY5xSwnArB4mDNCHtTuEcVMG8kvgf5Y"],
+  ["$WILLOW · key #0", "A5etzyWewR9EVFFa5UD6HFE3yXcwmN9yVb8CXs7zPxRT"],
+];
 
 const unhex = (s: string) => new Uint8Array((s.match(/../g) ?? []).map((b) => parseInt(b, 16)));
 const enc = new TextEncoder();
@@ -211,10 +218,20 @@ export default function Verify() {
           ))}
         </div>
         {mode === "id" ? (
+          <>
           <form className="p-4 flex flex-col sm:flex-row gap-2" onSubmit={(e) => { e.preventDefault(); load(input); }}>
             <input className="input mono text-[13px]" placeholder="Paste a withdrawal ID" value={input} onChange={(e) => setInput(e.target.value)} aria-label="Withdrawal ID" />
             <button className="btn btn-primary sm:w-36" disabled={busy || !input.trim()}>{busy ? "Fetching…" : "Verify"}</button>
           </form>
+          <div className="px-4 pb-4 flex flex-wrap items-center gap-2">
+            <span className="label mr-1">Try an example</span>
+            {EXAMPLES.map(([label, id]) => (
+              <button key={id} type="button" onClick={() => { setInput(id); load(id); }} className="mono text-[12px] border border-line px-2.5 py-1.5 hover:border-ink/40 hover:text-ink text-ink/70 transition-colors">
+                {label} · {id.slice(0, 6)}…{id.slice(-4)}
+              </button>
+            ))}
+          </div>
+          </>
         ) : (
           <div className="p-4">
             <textarea className="input mono text-[12px] min-h-32" placeholder='{"program":"…","vault":"…","keyIndex":0,"mint":"…","amount":"…","destination":"…","nextKeyHash":"…","salt":0,"sig":"…","keyHash":"…"}' value={raw} onChange={(e) => setRaw(e.target.value)} aria-label="Raw withdrawal JSON" />
@@ -399,9 +416,10 @@ export default function Verify() {
           <p className="mt-4 text-[13px] text-mute">
             How this works: <Link to="/docs/verifying" className="underline hover:text-ink">Verifying a withdrawal</Link> ·{" "}
             <Link to="/docs/signature-scheme" className="underline hover:text-ink">Signature scheme</Link>
-          </p>
+                    </p>
         </div>
       </div>
+      <VerifyExplainer />
     </div>
   );
 }

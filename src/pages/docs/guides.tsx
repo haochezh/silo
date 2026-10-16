@@ -12,27 +12,52 @@ export function Introduction() {
         withdrawal.
       </P>
       <P>
-        The design goal is narrow: creator fees should survive the day ed25519 stops being safe, whether that day comes
-        from a quantum computer running Shor's algorithm or from a classical break nobody has published yet.
+        The design goal is deliberately narrow: creator fees should survive the day ed25519 stops being safe, whether that
+        day comes from a quantum computer running Shor's algorithm or from a classical break nobody has published yet.
+        Everything else about silo, from the interface to the key derivation, follows from taking that goal seriously.
       </P>
 
       <H2>Why creator fees</H2>
       <P>
         On Solana an address <em>is</em> its ed25519 public key. Bitcoin hides most public keys behind a hash until coins
         move; Solana cannot, so every wallet's key is visible from the moment it receives anything. If the curve falls,
-        every wallet is exposed at the same time.
+        every wallet is exposed at the same time, and there is no window in which a user can move funds first.
       </P>
       <P>
         Creator fees are the slowest money in the ecosystem. They accrue on every trade, sit in a creator vault until
-        someone claims them, and are frequently left untouched for months or years. That makes them exactly the balance a
-        future attacker reaches first. silo moves them somewhere the attack does not apply.
+        someone claims them, and are frequently left untouched for months or years. A coin that trades for a weekend can
+        keep earning fees long after its creator has stopped watching it. That makes these balances exactly the money a
+        future attacker reaches first: large, idle and protected by a key in plain sight.
+      </P>
+      <P>
+        silo moves them somewhere the attack does not apply. A silo has no curve key at all, so there is nothing for Shor's
+        algorithm to target, and the hash-based signature that guards it keeps roughly 112 bits of security even against
+        Grover's search.
+      </P>
+
+      <H2>How silo works, in one paragraph</H2>
+      <P>
+        When you lock a coin, your browser generates 24 words and derives from them a chain of one-time keys. It
+        publishes only the hash of key #0, which becomes part of the silo's address. pump.fun's fee sharing is then
+        configured to pay the coin's creator fees to that address, and pump.fun revokes the configuration's admin so the
+        route can never change. Fees are pushed into the silo by a permissionless instruction anyone can call. To withdraw,
+        the browser signs the exact amount and destination with the current key, commits to the next key in the same
+        signature, and the program checks every byte before paying out.
       </P>
 
       <H2>What silo is not</H2>
       <UL>
-        <li>It is not a launchpad. silo works with coins that already exist on pump.fun, on the bonding curve or graduated to PumpSwap.</li>
-        <li>It is not a wallet. You do not hold tokens in silo day to day; it is a destination for fees you intend to keep.</li>
-        <li>It does not protect Solana itself. Validators still sign blocks with ed25519. silo protects what is inside a silo from a broken signing key.</li>
+        <li><strong className="text-ink font-normal">Not a launchpad.</strong> silo works with coins that already exist on pump.fun, on the bonding curve or graduated to PumpSwap. You do not relaunch anything.</li>
+        <li><strong className="text-ink font-normal">Not a wallet.</strong> You do not hold tokens in silo day to day. It is a destination for fees you intend to keep, possibly for a long time.</li>
+        <li><strong className="text-ink font-normal">Not custodial.</strong> silo never sees your words and has no key that can move funds. There is no admin, no pause switch and no recovery path.</li>
+        <li><strong className="text-ink font-normal">Not a fix for Solana itself.</strong> Validators still sign blocks with ed25519. silo protects what is inside a silo from a broken signing key; it does not make the network quantum-safe.</li>
+      </UL>
+
+      <H2>Who it is for</H2>
+      <UL>
+        <li>Creators who want their coin's fees to accumulate somewhere they will still be safe in five or ten years.</li>
+        <li>Communities that want proof the creator cannot redirect fees later: the route is fixed by pump.fun and visible on chain.</li>
+        <li>Anyone interested in practical post-quantum cryptography on Solana today, with a verifier they can run themselves.</li>
       </UL>
 
       <H2>Network status</H2>
@@ -44,6 +69,7 @@ export function Introduction() {
           ["Pump Fees program", <C>{PUMP_FEES_PROGRAM}</C>],
           ["Signature scheme", "Winternitz OTS, w = 256, SHA-256 truncated to 224 bits"],
           ["Signature size", "840 bytes"],
+          ["Public API", <C>https://api.silo.fund/api</C>],
         ]}
       />
 
@@ -51,6 +77,7 @@ export function Introduction() {
       <UL>
         <li><A to="/docs/quickstart">Quickstart</A>: lock your first coin's fees in a few minutes.</li>
         <li><A to="/docs/concepts">Core concepts</A>: silos, one-time keys and the fee route.</li>
+        <li><A to="/docs/pump-fun">pump.fun integration</A>: exactly which pump.fun instructions silo calls, and when.</li>
         <li><A to="/docs/signature-scheme">Signature scheme</A>: the exact construction, byte for byte.</li>
         <li><A to="/docs/security">Security model</A>: what silo protects, and what it does not.</li>
       </UL>
@@ -63,7 +90,8 @@ export function Quickstart() {
     <>
       <P>
         This guide routes a pump.fun coin's creator fees into a new silo. It takes a few minutes and one wallet
-        signature. You need the wallet that created the coin and somewhere safe to write down 24 words.
+        signature. You need the wallet that created the coin and somewhere safe to write down 24 words. Nothing in this
+        guide requires installing software; everything happens on silo.fund in your browser.
       </P>
 
       <Note kind="warn" title="Read this first">
@@ -71,24 +99,34 @@ export function Quickstart() {
         fees anywhere else. Only lock a coin when you are sure, and only after your 24 words are written down offline.
       </Note>
 
-      <H2>Requirements</H2>
+      <H2>Before you start</H2>
       <UL>
         <li>The creator wallet of the coin, in a Wallet Standard wallet such as Phantom, Solflare or Backpack.</li>
-        <li>A coin that has <strong className="text-ink font-normal">not</strong> already been migrated to a fee sharing config.</li>
+        <li>The coin's contract address (CA). You can copy it from the coin's page on pump.fun.</li>
+        <li>A coin that has <strong className="text-ink font-normal">not</strong> already been migrated to a fee sharing config. If you have set up fee sharing on pump.fun before, the coin cannot be locked.</li>
         <li>A small amount of SOL for rent and fees, about 0.01 SOL.</li>
         <li>Paper and a pen. Do not store the 24 words in a screenshot, a notes app or a password manager synced to the cloud.</li>
+        <li>About five quiet minutes. Writing the words down carefully is the only part that matters.</li>
       </UL>
 
       <H2>Lock a coin</H2>
       <Steps
         items={[
-          ["Connect the creator wallet", <>Open <A to="/lock">Lock fees</A> and connect. silo lists the pump.fun coins your wallet created, with any unclaimed fees.</>],
-          ["Choose the coin and the share", <>Pick the coin and the share of creator fees to route: 100%, 80% or 50%. Anything below 100% keeps flowing to your normal wallet.</>],
-          ["Write down your 24 words", <>Your browser generates a BIP-39 phrase locally. Write it down, then confirm three of the words. The words never leave the tab.</>],
-          ["Review and sign", <>silo shows the vault address and the hash of key #0. Tick both acknowledgements and approve the signature in your wallet.</>],
-          ["Fees start flowing", <>The fee split is set, pending fees are swept in, and every future creator fee lands in the silo.</>],
+          ["Paste the contract address", <>Open <A to="/lock">Lock fees</A> and paste the coin's CA. silo looks the coin up and shows its name, image, market cap and volume so you can confirm it is the right one. If the coin is already in a silo, the page says so.</>],
+          ["Choose the share", <>Drag the slider to choose what share of creator fees goes to the silo, from 1% to 100%. Whatever you do not route keeps flowing to your normal wallet, which is still an ed25519 key. Most creators choose 100%.</>],
+          ["Connect the creator wallet", <>Connect the wallet that created the coin. pump.fun only lets the current creator configure fee sharing, so any other wallet would be rejected.</>],
+          ["Write down your 24 words", <>Your browser generates a BIP-39 phrase locally. Write it down in order, then confirm three of the words when asked. The words never leave the tab and are not stored anywhere.</>],
+          ["Review and sign", <>silo shows the silo address, the share and the hash of key #0. Tick both acknowledgements and approve the signature in your wallet. The message you sign names the coin, the silo and the key commitment.</>],
+          ["Fees start flowing", <>The fee split is set, any pending fees are swept in, and the coin appears on the <A to="/coins">coins board</A> immediately. Every future creator fee lands in the silo without you doing anything.</>],
         ]}
       />
+
+      <H2>Check your work</H2>
+      <UL>
+        <li>Find your coin on <A to="/coins">Coins</A>: it shows the share you chose and the time you locked it.</li>
+        <li>Open <A to="/silo">Your silo</A> with the 24 words. If they open the same silo address shown at lock, your backup is correct.</li>
+        <li>Store the words somewhere you will still be able to find in a few years, and tell yourself where.</li>
+      </UL>
 
       <H2>Withdraw later</H2>
       <P>
@@ -96,6 +134,17 @@ export function Quickstart() {
         the current one-time key and submits two transactions: <C>authorize</C>, which checks the signature and rotates the
         key, and <C>execute_sol</C>, which pays out exactly what you signed. See <A to="/docs/withdrawing">Withdrawing</A>.
       </P>
+
+      <H2>Common problems</H2>
+      <Table
+        head={["Message", "What it means"]}
+        rows={[
+          ["This coin is already in a silo", "Someone, possibly you, has already locked it. A coin can only be locked once."],
+          ["Wallet signature invalid", "The signature did not come from the connected wallet. Reconnect and try again."],
+          ["This wallet can't sign messages", "Some wallets don't support message signing. Use Phantom, Solflare or Backpack."],
+          ["No market found", "Very new coins can take a minute to appear in market data. Wait and paste the CA again."],
+        ]}
+      />
     </>
   );
 }
@@ -103,13 +152,21 @@ export function Quickstart() {
 export function Concepts() {
   return (
     <>
-      <P>A short glossary of the pieces silo is built from. Everything else in these docs uses these terms.</P>
+      <P>
+        A short tour of the pieces silo is built from. Everything else in these docs uses these terms, so it is worth
+        reading once even if you only plan to lock a single coin.
+      </P>
 
       <H2>Silo</H2>
       <P>
         A silo is a program derived address (PDA) owned by the silo program, seeded by <C>["silo", first_key_hash]</C>.
-        Because it is a PDA, no ed25519 private key exists for it. Lamports can only leave through the program, and the
-        program only moves them when shown a valid hash-based signature.
+        Because it is a PDA, no ed25519 private key exists for it: there is literally nothing to steal, guess or break.
+        Lamports can only leave through the program, and the program only moves them when shown a valid hash-based
+        signature for the exact withdrawal.
+      </P>
+      <P>
+        The address is a pure function of key #0's hash, so the same 24 words always find the same silo, on any device,
+        without silo storing anything about you.
       </P>
 
       <H2>One-time keys</H2>
@@ -117,23 +174,34 @@ export function Concepts() {
         Winternitz signatures are one-time: signing two different messages with the same key leaks enough of it to forge a
         third. silo therefore uses a chain of keys derived from your 24 words: key #0, key #1, key #2 and so on. Each
         withdrawal signs with the current key and, in the same signed message, commits to the hash of the next one. The
-        program retires the old key before any funds move.
+        program retires the old key before any funds move, so a signature can never be reused or replayed.
       </P>
       <Table
         head={["Term", "Meaning"]}
         rows={[
           ["Key index", "The number of the key the silo currently expects. Starts at 0 and increases by one per withdrawal."],
-          ["Key hash", "SHA-256 of the 30 public chain ends of a key. The silo stores only this."],
+          ["Key hash", "SHA-256 of the 30 public chain ends of a key. The silo stores only this, never the key itself."],
           ["First key hash", "The hash of key #0. It is part of the PDA seed, so it identifies the silo forever."],
           ["Next key hash", "The hash of key #n+1, included in every signed withdrawal. Becomes the silo's key hash once the withdrawal is authorized."],
+          ["Key commitment", "The link between consecutive keys. Each withdrawal proves the next key was chosen by whoever held the current one."],
         ]}
       />
+
+      <H2>Chains and digits</H2>
+      <P>
+        A Winternitz key is 30 secret values. Hashing each one 255 times gives its public chain end. To sign, the message is
+        hashed into 30 numbers between 0 and 255 (28 from the message and 2 checksum), and each secret is hashed that many
+        times. A verifier finishes the remaining hashes on every chain and checks it reaches the public end. The checksum
+        means nobody can push a chain forward to fake a different message without pushing another chain backward, which
+        would require reversing SHA-256.
+      </P>
 
       <H2>Fee route</H2>
       <P>
         pump.fun accrues creator fees in a creator vault PDA. Its fee sharing feature can migrate that vault to a sharing
-        config with up to ten recipients, set once. silo uses this to make a silo the recipient. Distribution is
-        permissionless, so anyone can push accrued fees into the silo at any time.
+        config with up to ten recipients, set once. silo uses this to make a silo a recipient for the share you choose.
+        Distribution is permissionless, so anyone can push accrued fees into the silo at any time, and they keep arriving
+        whether or not you ever come back.
       </P>
 
       <H2>Authorize and execute</H2>
@@ -141,8 +209,20 @@ export function Concepts() {
         Withdrawals happen in two instructions so the 840-byte signature fits in its own transaction. <C>authorize</C>
         verifies the signature, records the approved action and rotates the key. <C>execute_sol</C> (or{" "}
         <C>execute_token</C>) carries out exactly that action. Anyone can submit either; the signature, not the fee payer,
-        is the authority.
+        is the authority. Someone who copies your withdrawal can only submit it for you.
       </P>
+
+      <H2>Glossary</H2>
+      <Table
+        head={["Word", "Definition"]}
+        rows={[
+          ["ed25519", "The elliptic-curve signature scheme every Solana wallet uses. Broken by Shor's algorithm on a large quantum computer."],
+          ["WOTS", "Winternitz One-Time Signature. A hash-based signature whose security rests on SHA-256 alone."],
+          ["PDA", "Program derived address. An address controlled by a program, with no private key."],
+          ["Grover's algorithm", "A quantum search that roughly halves the bit-security of hash functions. 224-bit chain values leave about 112 bits."],
+          ["Crank", "Anyone calling a permissionless instruction, here the one that distributes pending fees into silos."],
+        ]}
+      />
     </>
   );
 }
@@ -168,8 +248,9 @@ export function Locking() {
 
       <H2>Choosing a share</H2>
       <P>
-        The lock screen offers 100%, 80% and 50%. With anything below 100%, the remaining share is assigned to the
-        creator wallet that signed the lock. Choose 100% if the goal is that no creator fee ever touches an ed25519 key.
+        The lock screen has a slider from 1% to 100%, with quick presets at 25%, 50%, 75% and 100%. With anything below
+        100%, the remaining share is assigned to the creator wallet that signed the lock. Choose 100% if the goal is that
+        no creator fee ever touches an ed25519 key.
       </P>
 
       <H2>Graduated coins</H2>

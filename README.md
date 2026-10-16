@@ -160,16 +160,23 @@ npm run dev      # site on :5173, proxies /api to :8787
 
 Requires Node 22.13+ (the API uses the built-in `node:sqlite`, no other dependencies).
 
-## Deploy on Railway
+## Deploy
 
-One service serves both the site and the API.
+The site is hosted on **Netlify** at `silo.fund`; the API runs on **Railway** at `api.silo.fund`.
 
-1. Create a project from this repo. Railway reads `railway.json`: it builds with `npm run build` and starts with `npm start`.
-2. Add a **volume** mounted at `/data`, and set `DATABASE_PATH=/data/silo.db` so coins and withdrawals survive redeploys.
-3. Optional variables: `SEED_DEMO=0` to start empty, `CORS_ORIGIN` if the frontend is hosted elsewhere, `PROGRAM_ID`.
-4. Point `silo.fund` at the service under **Settings → Networking → Custom domain**.
+**Railway (API)**
 
-To host the frontend separately (e.g. Netlify), build it with `VITE_API_URL=https://<your-railway-domain>` and set `CORS_ORIGIN` to the site's origin.
+1. Create a project from this repo. `railway.json` sets the build (`npm run build`) and start (`npm start`) commands.
+2. Attach a **volume** at `/data` and set `DATABASE_PATH=/data/silo.db` so data survives redeploys.
+3. Set `CORS_ORIGIN=https://silo.fund,https://www.silo.fund`.
+4. Add the custom domain `api.silo.fund` and create the CNAME record Railway shows.
+
+**Netlify (site)**
+
+1. Import this repo. `netlify.toml` sets the build command, the `dist` folder, the SPA redirect and `VITE_API_URL=https://api.silo.fund`.
+2. Keep `silo.fund` as the site's custom domain.
+
+Optional Railway variables: `SEED_DEMO=0` to start with an empty board, `PROGRAM_ID`.
 
 ### API
 

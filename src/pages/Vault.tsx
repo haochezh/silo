@@ -6,6 +6,7 @@ import { SIG_BYTES, deriveKey, encodeWithdrawal, grindSalt, hex, isMnemonic, see
 import { WITHDRAW_STEPS, short, sleep, vaultAddress } from "../lib/chain";
 import { ago, api, isAddress, useLive, type Coin, type Release } from "../lib/api";
 import CoinAvatar from "../components/CoinAvatar";
+import VaultExplainer from "../components/VaultExplainer";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 type Signed = { w: Withdrawal; sig: Uint8Array; keyHash: Uint8Array; tries: number; hashes: number; ms: number; ok: boolean };
@@ -95,7 +96,8 @@ export default function Vault() {
 
   if (!open) {
     return (
-      <div className="mx-auto max-w-xl px-4 pt-16">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-16">
+        <div className="max-w-xl">
         <h1 className="display text-[48px] leading-none">Your silo</h1>
         <p className="mt-3 text-dim">Enter your 24 words. They stay in this tab: the key is derived and used locally.</p>
         <div className="card p-6 mt-8">
@@ -106,6 +108,8 @@ export default function Vault() {
             No silo yet? <Link to="/lock" className="underline hover:text-ink">Lock a coin's fees</Link>
           </p>
         </div>
+        </div>
+        <VaultExplainer />
       </div>
     );
   }
@@ -236,6 +240,7 @@ export default function Vault() {
           </p>
         </div>
       </div>
+      <VaultExplainer />
     </div>
   );
 }

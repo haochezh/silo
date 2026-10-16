@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import BgVideo from "../components/BgVideo";
 import CoinAvatar from "../components/CoinAvatar";
-import { ChainArt, CurveArt, Funnel, IsoStack, WordGrid } from "../components/Art";
+import { ChainPlay, CountUp, CurvePlay, StepsPlay } from "../components/Interactive";
 import { ago, api, usd, useApi, useLive, type Coin } from "../lib/api";
 import { short } from "../lib/chain";
 
@@ -49,18 +49,20 @@ export default function Home() {
         <BgVideo className="absolute inset-0 h-full w-full object-cover [filter:contrast(1.05)_saturate(1.05)]" />
         <div className="absolute inset-0 overflow-hidden"><div className="grain" /></div>
         <div className="scan hidden lg:block" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_42%,transparent_20%,#0e0e0e_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_60%_42%,transparent_20%,#0e0e0e_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,#0e0e0ee6_0%,#0e0e0e99_30%,transparent_58%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(0deg,#0e0e0e_0%,#0e0e0ecc_20%,transparent_55%)]" />
         <div className="absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,#0e0e0e_0%,transparent_100%)]" />
 
-        <div className="relative h-full mx-auto max-w-[1440px] px-4 sm:px-6 flex flex-col justify-end items-center text-center pb-16 sm:pb-20">
-          <h1 className="display enter text-[56px] sm:text-[96px] leading-[0.95]" style={delay(250)}>
+        <div className="relative h-full mx-auto max-w-[1440px] px-4 sm:px-10 flex flex-col justify-end items-start text-left pb-16 sm:pb-24">
+          <p className="label enter" style={delay(150)}>Post-quantum vaults for pump.fun</p>
+          <h1 className="display enter mt-5 text-[56px] sm:text-[96px] leading-[0.92] max-w-[11ch]" style={delay(250)}>
             Outlive the <em className="text-acc not-italic sm:italic">curve.</em>
           </h1>
           <p className="enter mt-6 max-w-xl text-[17px] sm:text-[18px] leading-relaxed text-ink/70 font-light" style={delay(350)}>
             Lock your coin's creator fees in a vault no quantum computer can open. Set once through pump.fun, opened only by your 24 words.
           </p>
-          <div className="enter mt-9 flex flex-wrap justify-center gap-2" style={delay(450)}>
+          <div className="enter mt-9 flex flex-wrap gap-2" style={delay(450)}>
             <Link to="/lock" className="btn btn-primary">Lock your fees <span aria-hidden>›</span></Link>
             <Link to="/verify" className="btn btn-ghost">Re-run the math</Link>
           </div>
@@ -72,9 +74,9 @@ export default function Home() {
       <Section>
         <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 border-y border-line">
           {[
-            [stats.data ? stats.data.inSilo.toFixed(3) : "—", "SOL in silos"],
-            [stats.data?.coins ?? "—", "coins locked"],
-            [stats.data?.signatures ?? "—", "signatures verified"],
+            [<CountUp value={stats.data?.inSilo} decimals={3} />, "SOL in silos"],
+            [<CountUp value={stats.data?.coins} />, "coins locked"],
+            [<CountUp value={stats.data?.signatures} />, "signatures verified"],
             ["840", "byte signature"],
             ["30", "SHA-256 chains"],
             ["0", "elliptic curves"],
@@ -94,7 +96,7 @@ export default function Home() {
           On Solana, your address <em>is</em> your public key.
         </H2>
         <div className="mt-12 grid lg:grid-cols-[1fr_1.1fr] gap-px bg-line border border-line">
-          <div className="bg-bg p-6 sm:p-8 min-h-72 sm:min-h-80 flex items-center"><CurveArt /></div>
+          <div className="bg-bg p-6 sm:p-8 min-h-72 sm:min-h-80 flex items-center" data-no-reveal><CurvePlay /></div>
           <div className="bg-bg overflow-x-auto">
             <table className="w-full text-[14px]">
               <thead>
@@ -149,20 +151,7 @@ export default function Home() {
         <H2 sub="Three steps, one of them permanent. Nothing about it needs you to come back: fees flow in on their own for as long as the coin trades.">
           Set it once. Forget it for a decade.
         </H2>
-        <div className="mt-12 grid md:grid-cols-3 gap-px bg-line border border-line">
-          {([
-            ["Pick your coin", "Paste any pump.fun coin's contract address and connect the wallet that created it. Bonding curve or graduated, both work.", <Funnel />],
-            ["Write down 24 words", "Your browser derives a chain of Winternitz keys from them. Only the hash of key #0 is ever published. The words never leave the tab.", <WordGrid />],
-            ["Lock it", "pump.fun's fee split is set to your silo and its admin is revoked. Every future creator fee lands in the vault, forever.", <IsoStack labels={["SILO", "FEE SPLIT", "CREATOR VAULT", "BONDING CURVE"]} />],
-          ] as [string, string, ReactNode][]).map(([t, d, art], i) => (
-            <article key={t} className="bg-bg p-6 sm:p-8 flex flex-col">
-              <p className="label">Step {i + 1}</p>
-              <h3 className="mt-6 text-[20px] font-normal">{t}</h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-ink/60 font-light">{d}</p>
-              <div className="mt-auto pt-8 h-60">{art}</div>
-            </article>
-          ))}
-        </div>
+        <div className="mt-12"><StepsPlay /></div>
       </Section>
 
       {/* sealed */}
@@ -189,7 +178,7 @@ export default function Home() {
               ))}
             </ol>
           </div>
-          <div className="border border-line p-6 sm:p-10 h-[420px]"><ChainArt /></div>
+          <div className="border border-line p-6 sm:p-10 h-[420px]" data-no-reveal><ChainPlay /></div>
         </div>
       </Section>
 

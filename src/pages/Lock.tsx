@@ -135,15 +135,35 @@ export default function Lock() {
             </div>
           )}
 
-          <div className="label mt-6 mb-2">Fee share to the silo</div>
-          <div className="flex rounded-[2px] border border-line p-1 w-fit">
-            {[100, 80, 50].map((s) => (
-              <button key={s} className="pill" data-on={share === s} onClick={() => setShare(s)}>{s}%</button>
+          <div className="mt-7 flex items-baseline justify-between">
+            <label className="label" htmlFor="share">Fee share to the silo</label>
+            <span className="display text-[34px] leading-none text-acc tabular-nums">{share}%</span>
+          </div>
+          <input
+            id="share"
+            type="range"
+            min={1}
+            max={100}
+            value={share}
+            onChange={(e) => setShare(Number(e.target.value))}
+            className="range mt-3 w-full"
+            style={{ ["--p" as string]: `${share}%` }}
+          />
+          <div className="mt-2 flex justify-between gap-2">
+            {[25, 50, 75, 100].map((v) => (
+              <button key={v} type="button" className="pill min-h-8 border border-line" data-on={share === v} onClick={() => setShare(v)}>{v}%</button>
             ))}
           </div>
-          <p className="mt-2 text-[13px] text-mute">
-            {share === 100 ? "Every creator fee goes to the silo." : `${100 - share}% keeps flowing to your wallet.`}
-          </p>
+          <div className="mt-4 grid grid-cols-2 gap-px bg-line border border-line text-[13px]">
+            <div className="bg-bg p-3">
+              <p className="label">To the silo</p>
+              <p className="mt-1 mono">{share}% of every creator fee</p>
+            </div>
+            <div className="bg-bg p-3">
+              <p className="label">To your wallet</p>
+              <p className="mt-1 mono text-ink/60">{100 - share}%{share === 100 ? " · nothing exposed" : " · still ed25519"}</p>
+            </div>
+          </div>
 
           {!address ? (
             <button onClick={connect} className="btn btn-primary w-full mt-6">Connect the creator wallet</button>
