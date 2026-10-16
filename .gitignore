@@ -1,0 +1,8 @@
+*.tsbuildinfo
+.anchor
+.env
+data
+dist
+node_modules
+target
+tsconfig.tsbuildinfo

@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite",
     "server": "node --disable-warning=ExperimentalWarning server/index.mjs",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "start": "node --disable-warning=ExperimentalWarning server/index.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@noble/hashes": "^1.6.1",
