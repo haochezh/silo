@@ -1,98 +1,157 @@
-import { BRAND, PROGRAM_ID, PUMP_FEES_PROGRAM } from "../lib/config";
+import { useEffect, useRef, useState, type ComponentType } from "react";
+import { Link, NavLink, useParams } from "react-router-dom";
+import { BRAND } from "../lib/config";
+import { Concepts, Introduction, Keys, Locking, Quickstart, Verifying, Withdrawing } from "./docs/guides";
+import { Faq, ProgramReference, PumpIntegration, Sdk, Security, SignatureScheme } from "./docs/reference";
 
-const SCHEME = [
-  ["Scheme", "Winternitz OTS (WOTS+-style tweaks), w = 256"],
-  ["Hash", "SHA-256, chain values truncated to 224 bits"],
-  ["Chains", "28 message digits + 2 checksum digits = 30"],
-  ["Signature", "840 bytes, one transaction"],
-  ["Verify cost", "≤ 3,600 hashes (client grinds a salt to bound it)"],
-  ["Keys", "one-time; each withdrawal commits to the next key's hash"],
-  ["Security", "~112-bit against Grover; Shor does not apply"],
+type Page = { slug: string; title: string; lead: string; Body: ComponentType };
+
+const GROUPS: { name: string; pages: Page[] }[] = [
+  {
+    name: "Getting started",
+    pages: [
+      { slug: "introduction", title: "Introduction", lead: "Post-quantum vaults for pump.fun creator fees.", Body: Introduction },
+      { slug: "quickstart", title: "Quickstart", lead: "Route a coin's creator fees into a silo in a few minutes.", Body: Quickstart },
+      { slug: "concepts", title: "Core concepts", lead: "Silos, one-time keys and the fee route.", Body: Concepts },
+    ],
+  },
+  {
+    name: "Guides",
+    pages: [
+      { slug: "locking", title: "Locking creator fees", lead: "Connect a pump.fun coin to a silo, permanently.", Body: Locking },
+      { slug: "withdrawing", title: "Withdrawing", lead: "Sign in the browser, verify on chain, pay out exactly what was signed.", Body: Withdrawing },
+      { slug: "verifying", title: "Verifying a withdrawal", lead: "Re-run the program's check from the raw transaction bytes.", Body: Verifying },
+      { slug: "keys", title: "Managing your 24 words", lead: "How the words become keys, and how to keep them.", Body: Keys },
+    ],
+  },
+  {
+    name: "Reference",
+    pages: [
+      { slug: "signature-scheme", title: "Signature scheme", lead: "Winternitz one-time signatures over SHA-256, byte for byte.", Body: SignatureScheme },
+      { slug: "program", title: "Program reference", lead: "Instructions, accounts and errors of the silo program.", Body: ProgramReference },
+      { slug: "sdk", title: "TypeScript client", lead: "Key derivation, signing and verification in the browser.", Body: Sdk },
+      { slug: "pump-fun", title: "pump.fun integration", lead: "How silo uses pump.fun's fee sharing.", Body: PumpIntegration },
+    ],
+  },
+  {
+    name: "More",
+    pages: [
+      { slug: "security", title: "Security model", lead: "What silo protects, what it assumes, and where it stops.", Body: Security },
+      { slug: "faq", title: "FAQ", lead: "Short answers to common questions.", Body: Faq },
+    ],
+  },
 ];
 
-function H({ children }: { children: string }) {
-  return <h2 className="text-2xl font-medium tracking-tight mt-14 mb-4">{children}</h2>;
-}
+const ALL = GROUPS.flatMap((g) => g.pages.map((p) => ({ ...p, group: g.name })));
 
 export default function Docs() {
+  const { slug = "introduction" } = useParams();
+  const idx = Math.max(0, ALL.findIndex((p) => p.slug === slug));
+  const page = ALL[idx];
+  const prev = ALL[idx - 1];
+  const next = ALL[idx + 1];
+  const body = useRef<HTMLDivElement>(null);
+  const [toc, setToc] = useState<{ id: string; text: string }[]>([]);
+  const [active, setActive] = useState("");
+  const [menu, setMenu] = useState(false);
+
+  useEffect(() => {
+    setMenu(false);
+    const hs = Array.from(body.current?.querySelectorAll("h2[id]") ?? []) as HTMLElement[];
+    setToc(hs.map((h) => ({ id: h.id, text: h.textContent?.replace(/#$/, "") ?? "" })));
+    document.title = `${page.title} · ${BRAND.name} docs`;
+    if (!hs.length) return;
+    const io = new IntersectionObserver(
+      (es) => es.forEach((e) => e.isIntersecting && setActive((e.target as HTMLElement).id)),
+      { rootMargin: "-80px 0px -70% 0px" },
+    );
+    hs.forEach((h) => io.observe(h));
+    return () => io.disconnect();
+  }, [page]);
+
+  const sidebar = (
+    <nav aria-label="Docs" className="space-y-7">
+      {GROUPS.map((g) => (
+        <div key={g.name}>
+          <p className="label">{g.name}</p>
+          <ul className="mt-2.5 space-y-0.5 border-l border-line">
+            {g.pages.map((p) => (
+              <li key={p.slug}>
+                <NavLink
+                  to={`/docs/${p.slug}`}
+                  className={() =>
+                    `block py-1.5 pl-3 -ml-px border-l text-[14px] transition-colors ${
+                      p.slug === page.slug ? "border-ink text-ink" : "border-transparent text-ink/55 hover:text-ink"
+                    }`
+                  }
+                >
+                  {p.title}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+
   return (
-    <div className="mx-auto max-w-3xl px-4 pt-16 text-[15px] leading-relaxed text-dim">
-      <div className="label">docs</div>
-      <h1 className="mt-3 text-[44px] font-medium tracking-[-0.03em] text-ink">How {BRAND.name} works</h1>
-      <p className="mt-4">
-        {BRAND.name} is a Solana program that holds pump.fun creator fees in vaults with no private key. The only way
-        out is a hash-based one-time signature, verified on chain. No elliptic curve is involved at any step of a
-        withdrawal.
-      </p>
+    <div className="mx-auto max-w-[1440px] px-4 sm:px-6">
+      <div className="grid lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_220px] gap-10 xl:gap-14">
+        <aside className="hidden lg:block border-r border-line">
+          <div className="sticky top-14 max-h-[calc(100vh-56px)] overflow-y-auto py-10 pr-6">{sidebar}</div>
+        </aside>
 
-      <H>Why</H>
-      <p>
-        On Solana an address is its ed25519 public key. If the curve ever falls, to a quantum computer or a classical
-        shortcut, every wallet is exposed at once. Creator fees are especially exposed: they accumulate for months and
-        often go unclaimed for years. Hash-based signatures rest on the preimage resistance of SHA-256 alone.
-      </p>
+        <article className="min-w-0 py-10 lg:py-12 max-w-3xl">
+          <button className="lg:hidden btn btn-ghost mb-6" onClick={() => setMenu((m) => !m)} aria-expanded={menu}>
+            {menu ? "Close menu" : "Docs menu"}
+          </button>
+          {menu && <div className="lg:hidden mb-10 border border-line p-5">{sidebar}</div>}
 
-      <H>Flow</H>
-      <pre className="card p-5 mono text-[12px] text-ink overflow-x-auto leading-6">{`pump.fun trades ──creator fee──▶ creator vault (pump PDA)
-                                      │
-            distribute_creator_fees_v2 │  permissionless
-                                      ▼
-                              silo (PDA, no key)
-                                      │
-   authorize(sig, action, next_key_hash) ◀── 24 words, signed in the browser
-         │  verify WOTS on chain, rotate key, record action
-         ▼
-   execute_sol / execute_token ──▶ any Solana address`}</pre>
-      <ol className="mt-6 space-y-3 list-decimal pl-5">
-        <li>
-          <span className="text-ink">Open.</span> The browser derives key #0 from 24 words and sends only its hash.{" "}
-          <code className="mono text-ink">open_silo</code> creates a PDA committed to it.
-        </li>
-        <li>
-          <span className="text-ink">Lock.</span> The creator calls pump.fun's{" "}
-          <code className="mono text-ink">create_fee_sharing_config</code> and{" "}
-          <code className="mono text-ink">update_fee_shares_v2</code> with the silo as recipient. Pump.fun allows this
-          once and then revokes the admin, so the route is permanent.
-        </li>
-        <li>
-          <span className="text-ink">Collect.</span> Anyone can call{" "}
-          <code className="mono text-ink">distribute_creator_fees_v2</code> (and the PumpSwap sweep after graduation).
-          Fees land in the silo without anyone signing.
-        </li>
-        <li>
-          <span className="text-ink">Withdraw.</span> The browser signs{" "}
-          <code className="mono text-ink">(program, silo, key number, kind, mint, amount, destination, next_key_hash, salt)</code>.{" "}
-          <code className="mono text-ink">authorize</code> verifies it and rotates to the next key;{" "}
-          <code className="mono text-ink">execute_*</code> pays exactly what was signed. Anyone can submit either; the
-          signature is the authority, not the fee payer.
-        </li>
-      </ol>
+          <p className="label">{page.group}</p>
+          <h1 className="mt-3 text-[34px] sm:text-[40px] leading-tight font-normal tracking-tight">{page.title}</h1>
+          <p className="mt-3 text-[18px] leading-relaxed text-ink/60 font-light">{page.lead}</p>
 
-      <H>Signature scheme</H>
-      <table className="w-full text-sm">
-        <tbody>
-          {SCHEME.map(([k, v]) => (
-            <tr key={k} className="border-b border-line">
-              <td className="py-2.5 text-ink w-40">{k}</td>
-              <td className="py-2.5 mono text-[13px]">{v}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          <div ref={body} className="mt-8 border-t border-line pt-2">
+            <page.Body />
+          </div>
 
-      <H>What it doesn't protect</H>
-      <ul className="space-y-2 list-disc pl-5">
-        <li>Solana itself. Validators still sign blocks with ed25519.</li>
-        <li>The share of fees you didn't route. Anything below 100% still flows to your normal wallet.</li>
-        <li>Lost words. There is no recovery path by design.</li>
-        <li>The moment funds leave. A withdrawal to a normal wallet is only as safe as that wallet.</li>
-      </ul>
+          <div className="mt-16 grid sm:grid-cols-2 gap-3">
+            {prev ? (
+              <Link to={`/docs/${prev.slug}`} className="border border-line p-4 hover:border-line2 hover:bg-white/[.02]">
+                <span className="label">Previous</span>
+                <span className="block mt-1 text-[15px]">‹ {prev.title}</span>
+              </Link>
+            ) : <span />}
+            {next && (
+              <Link to={`/docs/${next.slug}`} className="border border-line p-4 text-right hover:border-line2 hover:bg-white/[.02]">
+                <span className="label">Next</span>
+                <span className="block mt-1 text-[15px]">{next.title} ›</span>
+              </Link>
+            )}
+          </div>
 
-      <H>Addresses</H>
-      <dl className="text-sm mono">
-        <div className="flex justify-between border-b border-line py-2.5"><dt className="text-dim">silo program</dt><dd className="text-ink break-all">{PROGRAM_ID}</dd></div>
-        <div className="flex justify-between border-b border-line py-2.5"><dt className="text-dim">pump fees</dt><dd className="text-ink break-all">{PUMP_FEES_PROGRAM}</dd></div>
-      </dl>
+          <div className="mt-8 flex flex-wrap justify-between gap-3 text-[13px] text-mute">
+            <a href={`${BRAND.github}/tree/main/src/pages/docs`} target="_blank" rel="noreferrer" className="hover:text-ink">Edit this page on GitHub</a>
+            <span>Last updated October 2026</span>
+          </div>
+        </article>
+
+        <aside className="hidden xl:block">
+          {toc.length > 0 && (
+            <div className="sticky top-14 py-12">
+              <p className="label">On this page</p>
+              <ul className="mt-3 space-y-1.5 text-[13px]">
+                {toc.map((t) => (
+                  <li key={t.id}>
+                    <a href={`#${t.id}`} className={`transition-colors ${active === t.id ? "text-ink" : "text-ink/50 hover:text-ink"}`}>{t.text}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }

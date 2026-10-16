@@ -5,8 +5,8 @@ import Logo from "./Logo";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-line mt-24">
-      <div className="mx-auto max-w-6xl px-4 py-8 flex flex-col md:flex-row gap-6 justify-between text-[12px] text-mute leading-relaxed">
+    <footer className="border-t border-line mt-32">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 py-10 flex flex-col md:flex-row gap-6 justify-between text-[12px] text-mute leading-relaxed">
         <div className="max-w-md">
         <div className="flex items-center gap-2 text-ink text-sm font-medium mb-3"><Logo height={20} /> {BRAND.domain}</div>
         <p>
