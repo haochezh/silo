@@ -12,11 +12,11 @@
 Post-quantum vaults for pump.fun creator fees. Set once, locked forever,<br>
 opened only by a hash-based signature from your 24 words.
 
-![solana](https://img.shields.io/badge/solana-program-27272a?style=flat-square&logo=solana&logoColor=white&labelColor=18181b)
-![pump.fun](https://img.shields.io/badge/pump.fun-fee%20sharing-27272a?style=flat-square&labelColor=18181b)
-![signature](https://img.shields.io/badge/signature-WOTS%20·%20840%20B-27272a?style=flat-square&labelColor=18181b)
-![curves](https://img.shields.io/badge/elliptic%20curves-0-4d7c0f?style=flat-square&labelColor=18181b)
-![license](https://img.shields.io/badge/license-MIT-27272a?style=flat-square&labelColor=18181b)
+![solana](https://img.shields.io/badge/solana-program-6d28d9?style=flat-square&logo=solana&logoColor=14F195&labelColor=18181b)
+![pump.fun](https://img.shields.io/badge/pump.fun-fee%20sharing-15803d?style=flat-square&labelColor=18181b)
+![signature](https://img.shields.io/badge/signature-WOTS%20·%20840%20B-0e7490?style=flat-square&labelColor=18181b)
+![curves](https://img.shields.io/badge/elliptic%20curves-0-65a30d?style=flat-square&labelColor=18181b)
+![license](https://img.shields.io/badge/license-MIT-b45309?style=flat-square&labelColor=18181b)
 [![X](https://img.shields.io/badge/@silodotfund-follow-27272a?style=flat-square&logo=x&logoColor=white&labelColor=18181b)](https://x.com/silodotfund)
 
 [Website](https://silo.fund) · [X @silodotfund](https://x.com/silodotfund) · [Verify](https://silo.fund/verify) · [Docs](https://silo.fund/docs)
